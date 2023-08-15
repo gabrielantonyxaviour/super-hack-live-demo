@@ -93,6 +93,7 @@ export default function Landing() {
   const { write: unlockFunds } = useContractWrite({
     abi: VAULT_CONTRACT_ABI,
     functionName: "unlockFunds",
+    args: [],
   });
 
   useEffect(() => {
@@ -285,8 +286,9 @@ export default function Landing() {
                   0.5
                 }
                 onClick={() => {
+                  console.log("LAST MIN DATA:" + collection.vault.id);
                   unlockFunds({
-                    to: collection.vault.id,
+                    address: collection.vault.id,
                   });
                 }}
                 className="flex items-center rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 hover:text-black disabled:bg-slate-500 disabled:hover:text-gray-100"
