@@ -196,7 +196,7 @@ function AttestCollection({
           onClick={() => {
             attest({
               args: [
-                collection.tokenId,
+                (parseInt(collection.tokenId) + 1).toString(),
                 "Very Good Collection!",
                 true,
                 address,
