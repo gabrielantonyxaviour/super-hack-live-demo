@@ -102,7 +102,26 @@ export default function Landing() {
         console.log("Fetching collection...: ", router.query.id);
         const collection = await getCollection(router.query.id);
         console.log(collection);
-        setCollection(collection);
+        console.log(
+          "CAchec: ",
+          localStorage.getItem("attestedCollectionsCache")
+        );
+
+        let attestedCollectionsCache = JSON.parse(
+          localStorage.getItem("attestedCollectionsCache") || "[]"
+        );
+
+        let a = attestedCollectionsCache.includes(collection.id);
+
+        console.log("a: ", a);
+
+        if (attestedCollectionsCache.includes(collection.id)) {
+          let temp = collection;
+          temp.vault.positiveVotes = temp.vault.positiveVotes + 1;
+          setCollection(temp);
+        } else {
+          setCollection(collection);
+        }
 
         if (collection) {
           let milestoneData = await fetch(collection.metadataContractURI).then(

@@ -7,7 +7,7 @@ import getAllProjects from "../utils/thegraph-queries/getAllProjects";
 import getAllProjectsByOwner from "../utils/thegraph-queries/getAllProjectsByOwner";
 import { Fragment, useState, useEffect } from "react";
 import { useContractWrite, useSignMessage } from "wagmi";
-import { parseEther } from "viem";
+import { parseEther, formatEther } from "viem";
 import {
   ATESTAMINT_CONTRACT_ADDRESS,
   ATESTAMINT_ABI,
@@ -27,54 +27,42 @@ function convertProofToUINT(proof: any) {
   return unpackedProof;
 }
 
-const collections = [
-  {
-    id: 1,
-    pfp: "/nftree.jpg",
-    name: "",
-    verified_on: "",
-    supply: "100",
-    funds_locked: "10 ETH",
-    milestones: "1",
-    date: "Dec 23, 2023",
-    attestations: "9%",
-  },
-  {
-    id: 2,
-    pfp: "",
-    name: "",
-    verified_on: "",
-    supply: "100",
-    funds_locked: "10 ETH",
-    milestones: "1",
-    date: "Dec 23, 2023",
-    attestations: "35%",
-  },
-  {
-    id: 3,
-    pfp: "",
-    name: "",
-    verified_on: "",
-    supply: "100",
-    funds_locked: "10 ETH",
-    milestones: "1",
-    date: "Dec 23, 2023",
-    attestations: "64%",
-  },
-];
-
 const storage_client = new NFTStorage({
   token: process.env.NEXT_PUBLIC_NFT_STORAGE_KEY || "",
 });
 
 function PublicCollection({ collection, collectionIdx, worldCoinData }: any) {
-  const { write: mint } = useContractWrite({
+  // Convert 1577000000000000 to ethers
+  let correctValue = BigInt("1577000000000000");
+  const correctEtherValue = formatEther(correctValue);
+
+  const { isSuccess, write: mint } = useContractWrite({
     address: collection.id,
     abi: ERC721DROP_ABI,
     functionName: "purchase",
     args: [1],
-    value: parseEther("0.000877"),
+    value: parseEther(correctEtherValue),
   });
+
+  useEffect(() => {
+    if (isSuccess) {
+      let collectionsToAttestCache = JSON.parse(
+        localStorage.getItem("collectionsToAttestCache") || "[]"
+      );
+      collectionsToAttestCache.push({
+        editionAddress: collection.id,
+        tokenId: 1,
+        imageURI: collection.imageURI,
+      });
+
+      localStorage.setItem(
+        "collectionsToAttestCache",
+        JSON.stringify(collectionsToAttestCache)
+      );
+
+      console.log("Minted and cached!");
+    }
+  }, [isSuccess, collection]);
 
   return (
     <tr key={collectionIdx}>
@@ -87,12 +75,26 @@ function PublicCollection({ collection, collectionIdx, worldCoinData }: any) {
             <div className="flex items-center">
               <div>
                 <picture>
-                  <source srcSet={collection.imageURI} type="image/*" />
+                  <source
+                    srcSet={
+                      collection.imageURI !== "" || collection.imageURI !== null
+                        ? collection.imageURI
+                        : "nftree.jpg"
+                    }
+                    type="image/*"
+                  />
                   <img
                     className="inline-block h-9 w-9 rounded-full"
                     loading="lazy"
-                    src={collection.imageURI}
-                    // fallback
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "nftree.jpg";
+                    }}
+                    src={
+                      collection.imageURI !== "" || collection.imageURI !== null
+                        ? collection.imageURI
+                        : "nftree.jpg"
+                    }
                     alt="image"
                   />
                 </picture>
@@ -164,12 +166,26 @@ function AttestCollection({
             <div className="flex items-center">
               <div>
                 <picture>
-                  <source srcSet={collection.imageURI} type="image/*" />
+                  <source
+                    srcSet={
+                      collection.imageURI !== "" || collection.imageURI !== null
+                        ? collection.imageURI
+                        : "nftree.jpg"
+                    }
+                    type="image/*"
+                  />
                   <img
                     className="inline-block h-9 w-9 rounded-full"
                     loading="lazy"
-                    src={collection.imageURI}
-                    // fallback
+                    src={
+                      collection.imageURI !== "" || collection.imageURI !== null
+                        ? collection.imageURI
+                        : "nftree.jpg"
+                    }
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "nftree.jpg";
+                    }}
                     alt="image"
                   />
                 </picture>
@@ -194,9 +210,22 @@ function AttestCollection({
         <button
           disabled={worldCoinData === null}
           onClick={() => {
+            let attestedCollectionsCache = JSON.parse(
+              localStorage.getItem("attestedCollectionsCache") || "[]"
+            );
+
+            attestedCollectionsCache.push(collection.editionAddress);
+
+            localStorage.setItem(
+              "attestedCollectionsCache",
+              JSON.stringify(attestedCollectionsCache)
+            );
+
+            console.log("Attested and cached!");
+
             attest({
               args: [
-                (parseInt(collection.tokenId) + 1).toString(),
+                parseInt(collection.tokenId).toString(),
                 "Very Good Collection!",
                 true,
                 address,
@@ -354,7 +383,7 @@ export default function ProjectAttestations() {
 
   const handleWorldCoinSuccess = (data: any) => {
     console.log("WorldCoin Success:", data);
-    sessionStorage.setItem("worldcoinData", JSON.stringify(data));
+    localStorage.setItem("worldcoinData", JSON.stringify(data));
     setWorldCoinData(data);
     const proof =
       "0x01194ee68e962d1fffb8041b9cf169d26ae09e4b2463790fdda0089f4264c75824ab60b79f7c19205102eb9546c8640dfd3a2c638bcd0de1dca1b08af5813e040b63c250ac71ef56a428778c5c8bb17d4dbc5ed6a913198eb1755e7befde6158172489dba466a133ebfda90cc301fd6b7bfe0018e14360a80f125f8a3e7e3ae81c96590ee3a4d16bb85c05feb6569ae6ce4cda9d309cfd288b12ef7f4326ffbe0363704e1e4506a26a7f49aad1710b5b18c07ba4631af885490f7f58a967e974284d957b17d8ba6da10b80d71d462688f6e8ccd5b874c3cbbdcf0d6278ab7a9505589f0fb603e47ddcada1dafd54c0f2fc3a8a745e3f6db9415580438dcb339c";
@@ -366,8 +395,8 @@ export default function ProjectAttestations() {
   };
 
   useEffect(() => {
-    if (sessionStorage.getItem("worldcoinData")) {
-      let worldcoinData: any = sessionStorage.getItem("worldcoinData");
+    if (localStorage.getItem("worldcoinData")) {
+      let worldcoinData: any = localStorage.getItem("worldcoinData");
       setWorldCoinData(JSON.parse(worldcoinData));
     }
     (async () => {
@@ -375,8 +404,13 @@ export default function ProjectAttestations() {
       console.log("Projects:", allProjects);
       setAllProjects(allProjects);
 
-      const projectsByOwner: any = await getAllProjectsByOwner(address);
+      let projectsByOwner: any = await getAllProjectsByOwner(address);
       console.log("Projects By Owner:", projectsByOwner);
+      let collectionsToAttestCache = JSON.parse(
+        localStorage.getItem("collectionsToAttestCache") || "[]"
+      );
+
+      projectsByOwner = [...projectsByOwner, ...collectionsToAttestCache];
       setProjectsByOwner(projectsByOwner);
 
       setLoadingProjects(false);

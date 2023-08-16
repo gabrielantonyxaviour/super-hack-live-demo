@@ -9,7 +9,7 @@ import "filepond/dist/filepond.min.css";
 import FilePondPluginImageExifOrientation from "filepond-plugin-image-exif-orientation";
 import FilePondPluginImagePreview from "filepond-plugin-image-preview";
 import "filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css";
-import { useContractWrite } from "wagmi";
+import { useContractWrite, useContractEvent } from "wagmi";
 import { parseEther } from "viem";
 import { Success } from "@/components/alerts";
 
@@ -26,6 +26,38 @@ const storage_client = new NFTStorage({
 });
 
 export default function CreateProject() {
+  useContractEvent({
+    address: ATESTAMINT_CONTRACT_ADDRESS,
+    abi: ATESTAMINT_ABI,
+    eventName: "EditionCreated",
+    listener(
+      sender,
+      editionAddress,
+      vaultAddress,
+      editionSize,
+      imageURI,
+      metadataContractURI
+    ) {
+      let log = {
+        sender,
+        editionAddress,
+        vaultAddress,
+        editionSize,
+        imageURI,
+        metadataContractURI,
+      };
+      let allCollections = JSON.parse(
+        localStorage.getItem("allCollections") || "[]"
+      );
+      localStorage.setItem(
+        "allCollections",
+        JSON.stringify([...allCollections, log])
+      );
+      console.log("Log: ", log);
+      console.log("allCollections: ", localStorage.getItem("allCollections"));
+    },
+  });
+
   const { address } = useAccount();
   const [worldCoinData, setWorldCoinData] = useState(null);
   const [milestoneData, setMilestoneData] = useState({
@@ -40,7 +72,7 @@ export default function CreateProject() {
     symbol: "",
     editionSize: 0,
     royaltyBPS: 0,
-    publicSalePrice: 0.0008,
+    publicSalePrice: 0.0001,
     maxSalePurchasePerAddress: 1,
     publicSaleStart: 0,
     publicSaleEnd: 0,
@@ -88,7 +120,7 @@ export default function CreateProject() {
 
   const handleWorldCoinSuccess = (data) => {
     console.log("WorldCoin Success:", data);
-    sessionStorage.setItem("worldcoinData", JSON.stringify(data));
+    localStorage.setItem("worldcoinData", JSON.stringify(data));
     setWorldCoinData(data);
   };
 
@@ -111,27 +143,50 @@ export default function CreateProject() {
   };
 
   const handleCreateEdition = () => {
-    console.log("Unformatted: ", createEditionParams);
+    let a = createEditionParams;
+    // let a = {
+    //   name: "FAB tokens",
+    //   symbol: "FABF",
+    //   editionSize: "2",
+    //   royaltyBPS: "100",
+    //   publicSalePrice: 0.0001,
+    //   maxSalePurchasePerAddress: "1",
+    //   publicSaleStart: 1692057600,
+    //   publicSaleEnd: 1693785600,
+    //   presaleStart: 0,
+    //   presaleEnd: 0,
+    //   presaleMerkleRoot:
+    //     "0x0000000000000000000000000000000000000000000000000000000000000000",
+    //   description:
+    //     "What is an NFT charity?\nWhat is NFT Fundraising? - The Giving Block\nNon-fungible tokens (a.k.a. “NFTs”) have become a global phenomenon and a growing force for good. Projects like the Bored Ape Yacht Club have reached mainstream culture, while NFT creators have given millions of dollars in crypto donations to charities",
+    //   imageURI:
+    //     "https://ipfs.io/ipfs/bafkreiakunz4c3y42szapm6kq7mldb4fuhum7kq2buibfwm3yrlh2p3ra4",
+    //   animationURI:
+    //     "https://ipfs.io/ipfs/bafkreiduenhjrl7hjgh3lwxr6nvmfv4kzqzzizhzkbydxdabtcjptavzbm",
+    //   metadataContractURI:
+    //     "https://ipfs.io/ipfs/bafkreie4iptsornypbyh44a7zppxyzfo6fg4aubesr73wkbsc75feuqx2a",
+    // };
+    console.log("Unformatted: ", a);
 
     let args = [
       [
-        createEditionParams.name,
-        createEditionParams.symbol,
-        parseInt(createEditionParams.editionSize),
-        parseInt(createEditionParams.royaltyBPS),
+        a.name,
+        a.symbol,
+        parseInt(a.editionSize),
+        parseInt(a.royaltyBPS),
         [
-          parseEther(createEditionParams.publicSalePrice.toString()),
-          parseInt(createEditionParams.maxSalePurchasePerAddress),
-          parseInt(createEditionParams.publicSaleStart),
-          parseInt(createEditionParams.publicSaleEnd),
-          parseInt(createEditionParams.presaleStart),
-          parseInt(createEditionParams.presaleEnd),
-          createEditionParams.presaleMerkleRoot,
+          parseEther(a.publicSalePrice.toString()),
+          parseInt(a.maxSalePurchasePerAddress),
+          parseInt(a.publicSaleStart),
+          parseInt(a.publicSaleEnd),
+          parseInt(a.presaleStart),
+          parseInt(a.presaleEnd),
+          a.presaleMerkleRoot,
         ],
-        createEditionParams.description,
-        createEditionParams.animationURI,
-        createEditionParams.imageURI,
-        createEditionParams.metadataContractURI,
+        a.description,
+        a.animationURI,
+        a.imageURI,
+        a.metadataContractURI,
       ],
     ];
     console.log("Formatted: ", args);
@@ -147,8 +202,8 @@ export default function CreateProject() {
       handleImageUpload(files);
     }
 
-    if (sessionStorage.getItem("worldcoinData")) {
-      let worldCoinData = sessionStorage.getItem("worldcoinData");
+    if (localStorage.getItem("worldcoinData")) {
+      let worldCoinData = localStorage.getItem("worldcoinData");
       setWorldCoinData(JSON.parse(worldCoinData));
     }
   }, [files]);

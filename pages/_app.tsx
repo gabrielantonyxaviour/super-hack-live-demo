@@ -7,6 +7,7 @@ import { configureChains, createConfig, WagmiConfig } from "wagmi";
 import { optimism, optimismGoerli, zora, goerli } from "wagmi/chains";
 import { alchemyProvider } from "wagmi/providers/alchemy";
 import { publicProvider } from "wagmi/providers/public";
+import { useContractEvent } from "wagmi";
 
 const { chains, publicClient } = configureChains(
   [optimismGoerli, optimism, zora, goerli],
