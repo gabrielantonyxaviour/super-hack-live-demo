@@ -87,8 +87,9 @@ function PublicCollection({ collection, collectionIdx, worldCoinData }: any) {
                     className="inline-block h-9 w-9 rounded-full"
                     loading="lazy"
                     onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = "nftree.jpg";
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = "nftree.jpg";
                     }}
                     src={
                       collection.imageURI !== "" || collection.imageURI !== null
@@ -183,8 +184,9 @@ function AttestCollection({
                         : "nftree.jpg"
                     }
                     onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = "nftree.jpg";
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = "nftree.jpg";
                     }}
                     alt="image"
                   />
