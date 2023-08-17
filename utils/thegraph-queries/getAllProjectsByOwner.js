@@ -21,7 +21,6 @@ async function getAllProjectsByOwnerQuery(ownerAddress) {
 
   try {
     const data = await request(endpoint, query, { owner: ownerAddress });
-    console.log("Data:", data);
     return data.dropNFTs.concat(data.editionNFTs);
   } catch (error) {
     console.error("Error fetching data:", error);

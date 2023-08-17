@@ -38,7 +38,6 @@ async function getAllProjectsQuery() {
 
   try {
     const data = await request(endpoint, query, {});
-    console.log("Data:", data);
     return data.dropCollections.concat(data.editionCollections);
   } catch (error) {
     console.error("Error fetching data:", error);
@@ -49,7 +48,6 @@ async function getAllProjectsQuery() {
 export default async function getAllProjects() {
   return getAllProjectsQuery()
     .then((projects) => {
-      console.log("Projects:", projects);
       return projects;
     })
     .catch((error) => {

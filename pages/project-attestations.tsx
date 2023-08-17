@@ -33,11 +33,18 @@ const storage_client = new NFTStorage({
 });
 
 function PublicCollection({ collection, collectionIdx, worldCoinData }: any) {
+  const [errorMessage, setErrorMessage] = useState("");
   // Convert 1577000000000000 to ethers
   let correctValue = BigInt("1577000000000000");
   const correctEtherValue = formatEther(correctValue);
 
-  const { isSuccess, write: mint } = useContractWrite({
+  const {
+    isSuccess,
+    write: mint,
+    isError,
+    isLoading,
+    error,
+  } = useContractWrite({
     address: collection.id,
     abi: ERC721DROP_ABI,
     functionName: "purchase",
@@ -46,6 +53,23 @@ function PublicCollection({ collection, collectionIdx, worldCoinData }: any) {
   });
 
   useEffect(() => {
+    if (isError) {
+      if (error.message.includes("Purchase_WrongPrice")) {
+        setErrorMessage("Price not enough.");
+      } else if (error.message.includes("Purchase_SoldOut")) {
+        setErrorMessage("Purchase Sold Out.");
+      } else if (error.message.includes("Purchase_TooManyForAddress")) {
+        setErrorMessage("Already minted, can't mint more.");
+      } else if (error.message.includes("User denied")) {
+        setErrorMessage("User denied transaction signature.");
+      } else if (error?.message?.includes("Sale_Inactive")) {
+        setErrorMessage("Sale has ended.");
+      } else if (error?.message?.includes("Mint_SoldOut")) {
+        setErrorMessage("Collection sold out.");
+      } else {
+        setErrorMessage("Unknown error.");
+      }
+    }
     if (isSuccess) {
       let collectionsToAttestCache = JSON.parse(
         localStorage.getItem("collectionsToAttestCache") || "[]"
@@ -63,7 +87,7 @@ function PublicCollection({ collection, collectionIdx, worldCoinData }: any) {
 
       console.log("Minted and cached!");
     }
-  }, [isSuccess, collection]);
+  }, [isSuccess, collection, isError, error]);
 
   return (
     <tr key={collectionIdx}>
@@ -136,9 +160,17 @@ function PublicCollection({ collection, collectionIdx, worldCoinData }: any) {
           onClick={() => {
             mint();
           }}
-          className="disabled:opacity-50 inline-flex items-center rounded-md bg-white px-5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+          className={`disabled:opacity-50 inline-flex items-center rounded-md ${
+            isError ? "bg-red-400" : isSuccess ? "bg-green-300" : "bg-slate-200"
+          } px-5 py-1.5 text-sm hover:text-zinc-100  hover:bg-indigo-600 shadow-lg  font-semibold text-gray-900 ring-inset ring-gray-300`}
         >
-          Mint
+          {isLoading
+            ? "Minting..."
+            : isSuccess
+            ? "Minted!"
+            : isError
+            ? errorMessage
+            : "Mint"}
         </button>
       </td>
     </tr>
@@ -151,29 +183,58 @@ function AttestCollection({
   worldCoinData,
   allProjects,
 }: any) {
+  const [errorMessage, setErrorMessage] = useState("Could not attest.");
   const { address } = useAccount();
   let vaultAddress = allProjects.find(
     (project: any) => project.id === collection.editionAddress
   )?.vault.id;
 
-  const { write: attest } = useContractWrite({
+  const {
+    write: attest,
+    isSuccess,
+    isError,
+    isLoading,
+    error,
+  } = useContractWrite({
     address: vaultAddress,
     abi: VAULT_CONTRACT_ABI,
     functionName: "vote",
   });
 
   useEffect(() => {
+    if (isError) {
+      if (error.message.includes("Vote_AlreadyVoted")) {
+        setErrorMessage("Already voted.");
+      } else if (error.message.includes("User denied")) {
+        setErrorMessage("User denied tx.");
+      } else {
+        setErrorMessage("Unknown error.");
+      }
+    }
     (async () => {
+      if (isSuccess) {
+        let attestedCollectionsCache = JSON.parse(
+          localStorage.getItem("attestedCollectionsCache") || "[]"
+        );
+
+        attestedCollectionsCache.push(collection.editionAddress);
+
+        localStorage.setItem(
+          "attestedCollectionsCache",
+          JSON.stringify(attestedCollectionsCache)
+        );
+
+        console.log("Attested and cached!");
+      }
+
       if (collection) {
         await axios
           .get(collection.imageURI)
           .then((res) => {
             if (res.data == null) {
-              console.log("Image loaded: ", res.data);
               let temp = collection;
               temp.imageURI = "/nftree.jpg";
               collection = temp;
-              console.log("Image loaded: ", collection);
             }
           })
           .catch((err) => {
@@ -182,8 +243,6 @@ function AttestCollection({
       }
     })();
   }, []);
-
-  console.log("Image URI:", collection?.imageURI);
 
   return (
     <tr key={collectionIdx}>
@@ -245,19 +304,6 @@ function AttestCollection({
         <button
           disabled={worldCoinData === null}
           onClick={() => {
-            let attestedCollectionsCache = JSON.parse(
-              localStorage.getItem("attestedCollectionsCache") || "[]"
-            );
-
-            attestedCollectionsCache.push(collection.editionAddress);
-
-            localStorage.setItem(
-              "attestedCollectionsCache",
-              JSON.stringify(attestedCollectionsCache)
-            );
-
-            console.log("Attested and cached!");
-
             attest({
               args: [
                 parseInt(collection.tokenId).toString(),
@@ -271,9 +317,17 @@ function AttestCollection({
               to: address,
             });
           }}
-          className="disabled:opacity-50 inline-flex items-center rounded-md bg-white px-5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+          className={`disabled:opacity-50 inline-flex items-center rounded-md ${
+            isError ? "bg-red-400" : isSuccess ? "bg-green-300" : "bg-slate-200"
+          } px-5 py-1.5 text-sm hover:text-zinc-100  hover:bg-indigo-600 shadow-lg  font-semibold text-gray-900 ring-inset ring-gray-300`}
         >
-          Attest
+          {isLoading
+            ? "Attesting..."
+            : isSuccess
+            ? "Attested!"
+            : isError
+            ? errorMessage
+            : "Attest"}
         </button>
       </td>
     </tr>
@@ -286,30 +340,6 @@ export default function ProjectAttestations() {
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [allProjects, setAllProjects] = useState([]);
   const [projectsByOwner, setProjectsByOwner] = useState([]);
-
-  const getFormatted = (data: any) => {
-    // Change projectsByOwner to this type
-    // [{
-    //   address: "PLACEHOLDER",
-    //   functionName: "tokenIdVoted",
-    //   args: [data.tokenId],
-    // },
-    // {
-    //   address: "PLACEHOLDER",
-    //   functionName: "tokenIdVoted",
-    //   args: [data.tokenId],
-    // },
-    // {
-    //   address: "PLACEHOLDER",
-    //   functionName: "tokenIdVoted",
-    //   args: [data.tokenId],
-    // },
-    // {
-    //   address: "PLACEHOLDER",
-    //   functionName: "tokenIdVoted",
-    //   args: [data.tokenId],
-    // }]
-  };
 
   const { address, isConnecting, isDisconnected } = useAccount();
 
@@ -338,11 +368,9 @@ export default function ProjectAttestations() {
     }
     (async () => {
       const allProjects: any = await getAllProjects();
-      console.log("Projects:", allProjects);
       setAllProjects(allProjects);
 
       let projectsByOwner: any = await getAllProjectsByOwner(address);
-      console.log("Projects By Owner:", projectsByOwner);
       let collectionsToAttestCache = JSON.parse(
         localStorage.getItem("collectionsToAttestCache") || "[]"
       );

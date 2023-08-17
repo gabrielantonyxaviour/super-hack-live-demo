@@ -325,7 +325,7 @@ export default function Landing() {
                     address: collection.vault.id,
                   });
                 }}
-                className="flex items-center rounded-xl bg-indigo-600 px-10 py-5 text-2xl   font-semibold text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 hover:text-black disabled:bg-slate-500 disabled:hover:text-gray-100"
+                className="flex items-center rounded-lg bg-indigo-600 px-10 py-5 text-2xl   font-semibold text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 hover:text-black disabled:bg-slate-500 disabled:hover:text-gray-100"
               >
                 Claim Funds
               </button>
