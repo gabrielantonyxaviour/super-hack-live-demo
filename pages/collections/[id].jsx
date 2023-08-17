@@ -7,6 +7,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { useRouter } from "next/router";
 import { VAULT_CONTRACT_ABI } from "../../utils/constants";
 import { useContractWrite } from "wagmi";
+import axios from "axios";
 import {
   ExclamationTriangleIcon,
   XMarkIcon,
@@ -131,6 +132,21 @@ export default function Landing() {
           console.log("Milestones:", milestoneData);
           setMilestoneData(milestoneData);
 
+          await axios
+            .get(collection.imageURI)
+            .then((res) => {
+              if (res.data == null) {
+                console.log("Image loaded: ", res.data);
+                let temp = collection;
+                temp.imageURI = "/nftree.jpg";
+                setCollection(temp);
+                console.log("Image loaded: ", collection);
+              }
+            })
+            .catch((err) => {
+              console.log("err: ", err);
+            });
+
           setLoading(false);
         }
       }
@@ -150,7 +166,6 @@ export default function Landing() {
                   className="w-full h-auto rounded-2xl"
                   loading="lazy"
                   src={collection.imageURI}
-                  // fallback
                   alt="image"
                 />
               </picture>
@@ -280,23 +295,23 @@ export default function Landing() {
             <div className="mt-8 bg-indigo-50 sm:rounded-lg">
               <div className="px-4 py-5 sm:p-6 sm:py-14">
                 <h3 className="text-3xl font-semibold leading-6 text-indigo-800">
-                  Now Minting
+                  No. of Attestations {collection.vault.positiveVotes} <br />
+                  <div className="mt-2">
+                    Total supply: {collection.vault.editionSize}
+                  </div>
                 </h3>
                 <div className="mt-2 w-full pt-0.5 bg-gray-300" />
                 <div className="mt-3 relative flex items-start justify-between">
                   <div className="text-sm leading-6 font-medium text-gray-900">
                     0.000877 ETH
                   </div>
-                  <div className="h-6 text-indigo-600 text-sm">
-                    No. of Attestations {collection.vault.positiveVotes} | Total
-                    supply: {collection.vault.editionSize}
-                  </div>
+                  <div className="h-6 text-indigo-600 text-sm">Now Minting</div>
                 </div>
               </div>
             </div>
 
             {/* Claim Funds Button */}
-            <div className="mt-8 flex justify-between">
+            <div className="mt-8 flex justify-between items-center">
               <button
                 type="button"
                 disabled={
@@ -310,7 +325,7 @@ export default function Landing() {
                     address: collection.vault.id,
                   });
                 }}
-                className="flex items-center rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 hover:text-black disabled:bg-slate-500 disabled:hover:text-gray-100"
+                className="flex items-center rounded-xl bg-indigo-600 px-10 py-5 text-2xl   font-semibold text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 hover:text-black disabled:bg-slate-500 disabled:hover:text-gray-100"
               >
                 Claim Funds
               </button>

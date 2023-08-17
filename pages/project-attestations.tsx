@@ -8,6 +8,7 @@ import getAllProjectsByOwner from "../utils/thegraph-queries/getAllProjectsByOwn
 import { Fragment, useState, useEffect } from "react";
 import { useContractWrite, useSignMessage } from "wagmi";
 import { parseEther, formatEther } from "viem";
+import axios from "axios";
 import {
   ATESTAMINT_CONTRACT_ADDRESS,
   ATESTAMINT_ABI,
@@ -69,6 +70,7 @@ function PublicCollection({ collection, collectionIdx, worldCoinData }: any) {
       <td className="border-t border-gray-200 px-3 py-3.5 text-smtext-gray-500">
         <div className="font-medium text-gray-900">
           <a
+            target="_blank"
             href={`collections/${collection.id}`}
             className="group block flex-shrink-0"
           >
@@ -77,7 +79,9 @@ function PublicCollection({ collection, collectionIdx, worldCoinData }: any) {
                 <picture>
                   <source
                     srcSet={
-                      collection.imageURI !== "" || collection.imageURI !== null
+                      collection?.imageURI !== "" ||
+                      collection?.imageURI !== null ||
+                      collection?.imageURI !== undefined
                         ? collection.imageURI
                         : "nftree.jpg"
                     }
@@ -86,16 +90,18 @@ function PublicCollection({ collection, collectionIdx, worldCoinData }: any) {
                   <img
                     className="inline-block h-9 w-9 rounded-full"
                     loading="lazy"
+                    src={
+                      collection?.imageURI !== "" ||
+                      collection?.imageURI !== null ||
+                      collection?.imageURI !== undefined
+                        ? collection.imageURI
+                        : "nftree.jpg"
+                    }
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.onerror = null;
                       target.src = "nftree.jpg";
                     }}
-                    src={
-                      collection.imageURI !== "" || collection.imageURI !== null
-                        ? collection.imageURI
-                        : "nftree.jpg"
-                    }
                     alt="image"
                   />
                 </picture>
@@ -156,6 +162,29 @@ function AttestCollection({
     functionName: "vote",
   });
 
+  useEffect(() => {
+    (async () => {
+      if (collection) {
+        await axios
+          .get(collection.imageURI)
+          .then((res) => {
+            if (res.data == null) {
+              console.log("Image loaded: ", res.data);
+              let temp = collection;
+              temp.imageURI = "/nftree.jpg";
+              collection = temp;
+              console.log("Image loaded: ", collection);
+            }
+          })
+          .catch((err) => {
+            console.log("err: ", err);
+          });
+      }
+    })();
+  }, []);
+
+  console.log("Image URI:", collection?.imageURI);
+
   return (
     <tr key={collectionIdx}>
       <td className="border-t border-gray-200 px-3 py-3.5 text-smtext-gray-500">
@@ -169,7 +198,9 @@ function AttestCollection({
                 <picture>
                   <source
                     srcSet={
-                      collection.imageURI !== "" || collection.imageURI !== null
+                      collection.imageURI !== "" ||
+                      collection.imageURI !== null ||
+                      collection.imageURI !== undefined
                         ? collection.imageURI
                         : "nftree.jpg"
                     }
@@ -179,7 +210,9 @@ function AttestCollection({
                     className="inline-block h-9 w-9 rounded-full"
                     loading="lazy"
                     src={
-                      collection.imageURI !== "" || collection.imageURI !== null
+                      collection.imageURI !== "" ||
+                      collection.imageURI !== null ||
+                      collection.imageURI !== undefined
                         ? collection.imageURI
                         : "nftree.jpg"
                     }
@@ -236,104 +269,6 @@ function AttestCollection({
                 convertProofToUINT(worldCoinData.proof),
               ],
               to: address,
-            });
-          }}
-          className="disabled:opacity-50 inline-flex items-center rounded-md bg-white px-5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-        >
-          Attest
-        </button>
-      </td>
-    </tr>
-  );
-}
-
-function AttestCollectionClone({
-  collection,
-  collectionIdx,
-  worldCoinData,
-  allProjects,
-}: any) {
-  const { address } = useAccount();
-  let vaultAddress = allProjects.find(
-    (project: any) => project.id === collection.editionAddress
-  )?.vault.id;
-
-  const {
-    data,
-    error: prepareError,
-    isError: isPrepareError,
-    isLoading,
-    isSuccess,
-    write: attest,
-  } = useContractWrite({
-    address: ATESTAMINT_CONTRACT_ADDRESS,
-    abi: ATESTAMINT_ABI,
-    functionName: "createEditionCollection",
-  });
-
-  return (
-    <tr key={collectionIdx}>
-      <td className="border-t border-gray-200 px-3 py-3.5 text-smtext-gray-500">
-        <div className="font-medium text-gray-900">
-          <a
-            href={`collections/${collection.editionAddress}`}
-            className="group block flex-shrink-0"
-          >
-            <div className="flex items-center">
-              <div>
-                <picture>
-                  <source srcSet={collection.imageURI} type="image/*" />
-                  <img
-                    className="inline-block h-9 w-9 rounded-full"
-                    loading="lazy"
-                    src={collection.imageURI}
-                    // fallback
-                    alt="image"
-                  />
-                </picture>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
-                  NFTree
-                </p>
-                <p className="text-xs font-medium text-gray-500 group-hover:text-gray-700">
-                  {collection.editionAddress}
-                </p>
-              </div>
-            </div>
-          </a>
-        </div>
-      </td>
-      <td className="border-t border-gray-200 px-3 py-3.5 text-sm text-gray-500">
-        {collection.tokenId}
-      </td>
-
-      <td className="border-t border-gray-200 px-3 py-3.5 text-smtext-gray-500">
-        <button
-          disabled={worldCoinData === null}
-          onClick={() => {
-            attest({
-              args: [
-                [
-                  "Dummy",
-                  "UMA",
-                  parseInt("2"),
-                  parseInt("100"),
-                  [
-                    parseEther((0.0008).toString()),
-                    1,
-                    1691943947,
-                    1691954947,
-                    0,
-                    0,
-                    "0x0000000000000000000000000000000000000000000000000000000000000000",
-                  ],
-                  "DUMMY",
-                  "DUMMY",
-                  "DUMMy",
-                  "DUMMY",
-                ],
-              ],
             });
           }}
           className="disabled:opacity-50 inline-flex items-center rounded-md bg-white px-5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
@@ -411,6 +346,17 @@ export default function ProjectAttestations() {
       let collectionsToAttestCache = JSON.parse(
         localStorage.getItem("collectionsToAttestCache") || "[]"
       );
+
+      projectsByOwner = projectsByOwner.map((project: any) => {
+        let collection = allProjects.find(
+          (collection: any) => collection.id === project.editionAddress
+        );
+
+        return {
+          ...project,
+          imageURI: collection.imageURI,
+        };
+      });
 
       projectsByOwner = [...projectsByOwner, ...collectionsToAttestCache];
       setProjectsByOwner(projectsByOwner);
