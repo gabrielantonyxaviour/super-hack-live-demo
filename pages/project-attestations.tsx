@@ -35,7 +35,7 @@ const storage_client = new NFTStorage({
 function PublicCollection({ collection, collectionIdx, worldCoinData }: any) {
   const [errorMessage, setErrorMessage] = useState("");
   // Convert 1577000000000000 to ethers
-  let correctValue = BigInt("1577000000000000");
+  let correctValue = BigInt("877000000000000");
   const correctEtherValue = formatEther(correctValue);
 
   const {
@@ -183,7 +183,7 @@ function AttestCollection({
   worldCoinData,
   allProjects,
 }: any) {
-  const [errorMessage, setErrorMessage] = useState("Could not attest.");
+  const [errorMessage, setErrorMessage] = useState("Already attested.");
   const { address } = useAccount();
   let vaultAddress = allProjects.find(
     (project: any) => project.id === collection.editionAddress
@@ -203,6 +203,8 @@ function AttestCollection({
 
   useEffect(() => {
     if (isError) {
+      console.log("ERROR");
+      console.log(error);
       if (error.message.includes("Vote_AlreadyVoted")) {
         setErrorMessage("Already voted.");
       } else if (error.message.includes("User denied")) {
@@ -213,6 +215,7 @@ function AttestCollection({
     }
     (async () => {
       if (isSuccess) {
+        localStorage.setItem("isSuccess", "true");
         let attestedCollectionsCache = JSON.parse(
           localStorage.getItem("attestedCollectionsCache") || "[]"
         );
@@ -249,7 +252,7 @@ function AttestCollection({
       <td className="border-t border-gray-200 px-3 py-3.5 text-smtext-gray-500">
         <div className="font-medium text-gray-900">
           <a
-            href={`collections/${collection.editionAddress}`}
+            href={`collections/${collection.editionAddress}?isAttested=${isSuccess}`}
             className="group block flex-shrink-0"
           >
             <div className="flex items-center">
@@ -304,6 +307,7 @@ function AttestCollection({
         <button
           disabled={worldCoinData === null}
           onClick={() => {
+            console.log(collection);
             attest({
               args: [
                 parseInt(collection.tokenId).toString(),

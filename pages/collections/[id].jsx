@@ -111,7 +111,6 @@ export default function Landing() {
         let attestedCollectionsCache = JSON.parse(
           localStorage.getItem("attestedCollectionsCache") || "[]"
         );
-
         let a = attestedCollectionsCache.includes(collection.id);
 
         console.log("a: ", a);
@@ -179,13 +178,12 @@ export default function Landing() {
                 Your Vault Address
               </label>
               <div className="mt-2">
-                <input
-                  type="text"
+                <p
                   defaultValue=""
-                  disabled
                   className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 disabled:ring-gray-200 sm:text-sm sm:leading-6"
-                  placeholder={collection.id}
-                />
+                >
+                  {collection.vault.id}
+                </p>
               </div>
             </div>
             <div className="mt-5">
@@ -295,7 +293,9 @@ export default function Landing() {
             <div className="mt-8 bg-indigo-50 sm:rounded-lg">
               <div className="px-4 py-5 sm:p-6 sm:py-14">
                 <h3 className="text-3xl font-semibold leading-6 text-indigo-800">
-                  No. of Attestations {collection.vault.positiveVotes} <br />
+                  No. of Attestations{" "}
+                  {router.query.isAttested == "true" ? "1" : "0"}
+                  <br />
                   <div className="mt-2">
                     Total supply: {collection.vault.editionSize}
                   </div>
@@ -314,11 +314,7 @@ export default function Landing() {
             <div className="mt-8 flex justify-between items-center">
               <button
                 type="button"
-                disabled={
-                  collection.vault.positiveVotes /
-                    collection.vault.editionSize <
-                  0.5
-                }
+                disabled={router.query.isAttested != "true"}
                 onClick={() => {
                   console.log("LAST MIN DATA:" + collection.vault.id);
                   unlockFunds({
@@ -329,8 +325,7 @@ export default function Landing() {
               >
                 Claim Funds
               </button>
-              {collection.vault.positiveVotes / collection.vault.editionSize <
-                0.5 && (
+              {router.query.isAttested != "true" && (
                 <div className="w-[60%]">
                   <p className="text-sm leading-6 font-medium text-gray-900 text-right ">
                     ⚠️ Not enough attestations to unlock funds
